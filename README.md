@@ -4,7 +4,7 @@ An internal AI chatbot that lets analysts query a corpus of documents in plain E
 
 ## The client
 
-**Driftwood Capital** — fictional independent investment research firm. Their analysts spend half their week reading 10-Ks and 10-Qs before they can produce any original analysis. Document Copilot eats that intake work so they can skip straight to insight.
+**Driftwood Capital** — independent investment research firm. Their analysts spend half their week reading 10-Ks and 10-Qs before they can produce any original analysis. Document Copilot eats that intake work so they can skip straight to insight.
 
 Full brief: [docs/client-brief.md](docs/client-brief.md)
 
@@ -19,7 +19,7 @@ Full brief: [docs/client-brief.md](docs/client-brief.md)
 | Retrieval          | Supabase `pgvector` + Postgres full-text search      |
 | Auth               | Supabase Auth (email only)                           |
 | Hosting            | Railway                                              |
-| LLM + embeddings   | OpenAI                                               |
+| LLM + embeddings   | Gemini                                               |
 
 ## Repo layout
 
@@ -45,7 +45,7 @@ Install these before setting up `backend/` or `frontend/`:
 | [Node.js](https://nodejs.org/) | 20+ (LTS) | Frontend toolchain | nodejs.org or `nvm install --lts` |
 | [pnpm](https://pnpm.io/installation) | latest | Frontend package manager | `corepack enable && corepack prepare pnpm@latest --activate` |
 
-You also need accounts/keys for external services once the app is wired up. Start with [docs/guides/supabase-setup.md](docs/guides/supabase-setup.md) (account + project), then create an [OpenAI API key](https://platform.openai.com/api-keys) when the LLM layer is wired up.
+You also need accounts/keys for external services once the app is wired up. Start with [docs/guides/supabase-setup.md](docs/guides/supabase-setup.md) (account + project), then create a Gemini API key when the LLM layer is wired up.
 
 ## Running locally
 
