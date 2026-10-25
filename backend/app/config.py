@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
 
     gemini_api_key: SecretStr
+    gemini_generation_model: str = "gemini-3.5-flash-lite"
     gemini_embedding_model: str
     gemini_embedding_dimensions: int = Field(gt=0)
 

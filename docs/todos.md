@@ -50,9 +50,9 @@ Goal: a running FastAPI service with a migrated Supabase schema.
   - [x] generated `tsvector` column on chunks
   - [x] HNSW index (vector) + GIN index (full-text)
   - [x] RLS policies (users see only their own chats)
-- [] `uv run alembic upgrade head` against Supabase direct connection
-- [] `app/database/supabase.py` — user-scoped and service-role clients
-- [] Verify: `uv run uvicorn app.main:app --reload` → health check returns 200
+- [x] `uv run alembic upgrade head` against Supabase direct connection
+- [x] `app/database/supabase.py` — user-scoped and service-role clients
+- [x] Verify: `uv run uvicorn app.main:app --reload` → health check returns 200
 
 ---
 
@@ -62,18 +62,18 @@ Goal: analysts can sign in with email; backend rejects unauthenticated requests.
 
 **Backend**
 
-- [] `app/auth/dependencies.py` — verify `Authorization: Bearer <supabase_jwt>`, expose `get_current_user`
-- [] Reject missing/expired tokens with `401` before any chat or retrieval work
+- [x] `app/auth/dependencies.py` — verify `Authorization: Bearer <supabase_jwt>`, expose `get_current_user`
+- [x] Reject missing/expired tokens with `401` before any chat or retrieval work
 
 **Frontend**
 
-- [] Scaffold Vite + React + TypeScript + Tailwind + shadcn ([frontend-setup](guides/frontend-setup.md))
-- [] `src/lib/env.ts` — validate `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-- [] `src/lib/supabase.ts` — browser Supabase client
-- [] `src/lib/http.ts` + `src/lib/api.ts` — fetch wrapper with automatic bearer token
-- [] Sign-in / sign-up pages (email only, no SSO)
-- [] Protected routes — redirect unauthenticated users to login
-- [] Verify: sign up, sign in, token reaches backend on a test authenticated endpoint
+- [x] Scaffold Vite + React + TypeScript + Tailwind + shadcn ([frontend-setup](guides/frontend-setup.md))
+- [x] `src/lib/env.ts` — validate `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- [x] `src/lib/supabase.ts` — browser Supabase client
+- [x] `src/lib/http.ts` + `src/lib/api.ts` — fetch wrapper with automatic bearer token
+- [x] Sign-in / sign-up pages (email only, no SSO)
+- [x] Protected routes — redirect unauthenticated users to login
+- [x] Verify: sign up, sign in, token reaches backend on a test authenticated endpoint
 
 ---
 
@@ -83,18 +83,18 @@ Goal: end-to-end chat UI streaming from FastAPI, no real retrieval yet.
 
 **Backend**
 
-- [] Chat thread CRUD: list threads, create thread, load message history
-- [] `POST /chat/stream` — accepts AI SDK message format, streams a stubbed assistant reply
-- [] Persist user + assistant messages to `chat_messages` after stream completes
-- [] `403` when user accesses another user's thread
+- [x] Chat thread CRUD: list threads, create thread, load message history
+- [x] `POST /chat/stream` — accepts AI SDK message format, streams a stubbed assistant reply
+- [x] Persist user + assistant messages to `chat_messages` after stream completes
+- [x] `403` when user accesses another user's thread
 
 **Frontend**
 
-- [] React Router: login, chat list, chat thread routes
-- [] AI SDK chat primitives pointed at `POST /chat/stream` with Supabase bearer token
-- [] Thread sidebar (past conversations)
-- [] Basic message list + input + streaming indicator
-- [] Verify: create thread, send message, see streamed stub response, reload and see history
+- [x] React Router: login, chat list, chat thread routes
+- [x] AI SDK chat primitives pointed at `POST /chat/stream` with Supabase bearer token
+- [x] Thread sidebar (past conversations)
+- [x] Basic message list + input + streaming indicator
+- [ ] Verify: create thread, send message, see streamed stub response, reload and see history
 
 ---
 
@@ -102,17 +102,104 @@ Goal: end-to-end chat UI streaming from FastAPI, no real retrieval yet.
 
 Goal: SEC filings in the corpus are parsed, chunked, embedded, and stored in Supabase.
 
-- [] `ingest/` scripts (or CLI entrypoint) for one-off corpus loading
-- [] HTML → normalized Markdown extraction (preserve page/section metadata)
-- [] Chunking strategy (size + overlap; store chunk index, page, section, ticker, filing type, year)
-- [] Write `source_documents` rows with filing metadata from `manifest.json`
-- [] Write `document_chunks` rows with text + metadata
-- [] Gemini embedding generation → store `vector(1536)` per chunk
-- [] Generated `tsvector` populated for full-text search
-- [] Idempotent re-run (skip already-ingested documents)
-- [] Unit tests: chunking logic, metadata extraction
-- [] Run ingestion on full sample corpus (25 filings × 5 companies)
-- [] Verify: chunks exist in Supabase; spot-check a known passage (e.g. Apple revenue mix table)
+### Agreed ingestion shape
+
+- [x] Run ingestion as a one-off backend CLI, not an HTTP route:
+  `uv run python -m ingest --manifest ../data/downloads/manifest.json`
+- [x] Keep the stages separate and small:
+  `manifest → extract → normalize → chunk → embed → persist`
+- [x] Add only a real HTML-parser dependency if needed (prefer Beautiful Soup with the
+  standard-library parser); document why SEC inline-XBRL HTML is not safe to parse with
+  string or regex helpers.
+- [x] Use the existing settings in `app/config.py` for Gemini and Supabase; never read
+  environment variables directly inside ingestion modules.
+- [x] Treat `section` plus source character offsets as the dependable citation location.
+  Preserve a page number only when the filing contains a reliable page marker; otherwise
+  store `page = null` instead of inventing one.
+
+### 1. Input and manifest validation
+
+- [x] Add `backend/ingest/manifest.py` with typed manifest and filing records.
+- [x] Validate required fields: ticker, CIK, form, filing/report dates, accession number,
+  source URL, and local path.
+- [x] Resolve each local path relative to the manifest directory, reject paths outside the
+  downloads directory, and fail clearly when a referenced filing is missing.
+- [x] Map the five supported tickers to canonical company names and derive fiscal year from
+  `report_date`, not from the folder name or filing date.
+- [x] Add CLI options for `--manifest`, `--limit`, and `--dry-run` so one filing can be
+  inspected without calling Gemini or writing to Supabase.
+
+### 2. SEC HTML extraction and normalization
+
+- [x] Add `backend/ingest/extract.py` to remove scripts, styles, inline-XBRL metadata,
+  hidden content, navigation noise, and repeated empty blocks.
+- [x] Convert useful headings, paragraphs, lists, and tables into deterministic normalized
+  Markdown while preserving financial table rows and cell values.
+- [x] Detect SEC section headings such as `Item 1`, `Item 1A`, `Item 7`, and `Item 8`, and
+  carry the current section name through the extracted blocks.
+- [x] Preserve source offsets and reliable page-break markers in extraction metadata.
+- [x] Store the complete normalized Markdown in `source_documents.content` so later
+  re-chunking never needs the raw HTML or another SEC download.
+- [ ] Add representative HTML fixtures from the local corpus for paragraphs, sections,
+  tables, inline-XBRL tags, hidden content, and malformed-but-parseable markup.
+
+### 3. Structure-aware chunking
+
+- [x] Add `backend/ingest/chunking.py` with a pure, deterministic chunking function.
+- [x] Split at section/paragraph/table boundaries first; only split inside a block when it
+  exceeds the size limit.
+- [x] Start with roughly 1,000–1,500 tokens per chunk and 150–200 tokens of overlap, then
+  confirm the exact constants against real filings and Gemini's configured model limit.
+- [x] Never cut a normal-sized Markdown table row in half; repeat the table header when a
+  large table must span multiple chunks.
+- [x] Store sequential `chunk_index`, content, token count, optional page, section, source
+  start/end offsets, ticker, company, filing type/date, fiscal year, and accession number.
+- [x] Reject empty chunks and verify that ordering plus overlap lets neighboring context be
+  reconstructed later.
+
+### 4. Gemini document embeddings
+
+- [x] Add `backend/ingest/embeddings.py` using the existing async Google Gen AI SDK.
+- [x] Generate retrieval-document embeddings with the configured model and pass
+  `output_dimensionality=settings.gemini_embedding_dimensions`.
+- [x] Assert every returned vector has exactly 1,536 values before any database write.
+- [x] Embed small sequential batches and retry only transient rate-limit or
+  service errors with capped exponential backoff; fail loudly on invalid input/config.
+- [x] Keep the document embedding format compatible with Phase 5 query embeddings. For
+  `gemini-embedding-001`, use `RETRIEVAL_DOCUMENT`; if configured for Embedding 2, use its
+  documented `title: ... | text: ...` retrieval format instead.
+
+### 5. Supabase persistence and safe re-runs
+
+- [x] Add `app/database/documents.py` for source-document and chunk persistence; the CLI
+  uses the backend-only service-role client.
+- [x] Look up documents by unique `accession_number` before doing paid embedding work.
+- [x] Skip documents already marked complete; detect and clean up an incomplete prior run
+  before retrying it.
+- [x] Insert one `source_documents` row and its `document_chunks` in bounded batches, with
+  an ingestion-status marker in document metadata so partial runs are never treated as done.
+- [x] On a handled write failure, remove that document's partial rows (chunks cascade) and
+  report the accession number that failed.
+- [x] Let Postgres populate the generated `search_vector`; never send or manually update
+  the `tsvector` column from Python.
+- [x] Mark a document complete only after every expected chunk is stored, and print a final
+  summary of processed, skipped, failed, and total chunk counts.
+
+### 6. Tests and rollout
+
+- [x] Unit-test manifest validation, fiscal-year derivation, HTML cleanup, section detection,
+  Markdown table preservation, chunk size/overlap/order, and metadata propagation.
+- [x] Unit-test embedding batching, dimension validation, retry boundaries, and idempotency
+  with Gemini and Supabase mocked; the fast suite must use no network or live database.
+- [ ] Add an optional `@pytest.mark.integration` smoke test for one real embedding and one
+  Supabase write/read/delete cycle.
+- [x] Run `--dry-run --limit 1`, inspect the normalized Markdown and chunks, and adjust only
+  the documented chunk constants if the real filing exposes a problem.
+- [x] Ingest one Apple filing, verify document/chunk counts, 1,536-dimensional vectors, and
+  populated `search_vector`, then run it again and confirm it is skipped.
+- [ ] Run ingestion on the full manifest (25 filings × 5 companies).
+- [ ] Verify all 25 documents are complete with contiguous chunk indexes and no empty text
+  or embeddings; spot-check an Apple revenue table and its section/source metadata.
 
 ---
 
@@ -120,12 +207,14 @@ Goal: SEC filings in the corpus are parsed, chunked, embedded, and stored in Sup
 
 Goal: a user question returns ranked, relevant source passages.
 
-- [] `retrieval/queries.py` — pgvector semantic search over `document_chunks`
-- [] `retrieval/queries.py` — Postgres full-text search over `search_vector`
-- [] `retrieval/fusion.py` — Reciprocal Rank Fusion in Python
-- [] `retrieval/retriever.py` — query → fused ranked passages + neighbor chunks
-- [] Unit tests: fusion ranking, query assembly (mock DB)
-- [] Integration test (optional, `@pytest.mark.integration`): real query against ingested corpus
+- [x] `retrieval/queries.py` — pgvector semantic search over `document_chunks`
+- [x] `retrieval/queries.py` — Postgres full-text search over `search_vector`
+- [x] `retrieval/fusion.py` — Reciprocal Rank Fusion in Python
+- [x] `retrieval/retriever.py` — query → fused ranked passages + neighbor chunks
+- [x] Unit tests: fusion ranking, query assembly (mock DB)
+- [ ] Integration test (optional, `@pytest.mark.integration`): real query against ingested corpus
+- [x] Live smoke test: an Apple FY2025 net-sales query returned fused Item 7 and Item 8
+  passages from the ingested filing
 - [] Verify: test queries from [client-brief](client-brief.md) return relevant chunks (manual or scripted)
 
 ---
@@ -134,18 +223,18 @@ Goal: a user question returns ranked, relevant source passages.
 
 Goal: grounded answers with enforced citations — the core product contract.
 
-- [] `assistant/instructions.md` — product contract (cite everything, refuse to invent, no stock picks)
-- [] PydanticAI agent with typed deps (`DocumentAgentDeps`) and output (`GroundedAnswer`)
-- [] Agent tools: `search_filings`, `read_chunk`, `read_surrounding_chunks`
-- [] `chat/orchestrator.py` — one turn: retrieve → agent → validate → stream → persist
-- [] `grounding/validator.py` — every citation maps to a retrieved passage; fail closed on violation
-- [] `chat/streaming.py` — AI SDK-compatible stream (text deltas + citation metadata parts)
-- [] Persist `message_citations` linked to assistant messages
-- [] Unit tests: citation validation, grounding enforcement, message conversion
-- [] Verify against [client-brief example questions](client-brief.md#example-analyst-questions):
-  - [] Answers cite specific filings and pages
-  - [] Under-specified questions get "not enough evidence" responses
-  - [] Question 10 (generative AI margins) refuses to infer beyond filings
+- [x] `assistant/instructions.md` — product contract (cite everything, refuse to invent, no stock picks)
+- [x] PydanticAI agent with typed deps (`DocumentAgentDeps`) and output (`GroundedAnswer`)
+- [x] Agent tools: `search_filings`, `read_chunk`, `read_surrounding_chunks`
+- [x] `chat/orchestrator.py` — one turn: retrieve → agent → validate → stream → persist
+- [x] `grounding/validator.py` — every citation maps to a retrieved passage; fail closed on violation
+- [x] `chat/streaming.py` — AI SDK-compatible stream (text deltas + citation metadata parts)
+- [x] Persist `message_citations` linked to assistant messages
+- [x] Unit tests: citation validation, grounding enforcement, message conversion
+- [x] Verify against [client-brief example questions](client-brief.md#example-analyst-questions):
+  - [x] Answers cite specific filings and reliable pages or sections
+  - [x] Under-specified questions get "not enough evidence" responses
+  - [x] Question 10 (generative AI margins) refuses to infer beyond filings
 
 ---
 
@@ -153,11 +242,11 @@ Goal: grounded answers with enforced citations — the core product contract.
 
 Goal: analysts can verify every claim in one click — this is what makes the product usable.
 
-- [] Citation chips/links on assistant messages (company, filing type, date, page/section)
-- [] Source passage panel — show underlying excerpt for selected citation
-- [] Empty states (no threads, no corpus match)
-- [] Error states (auth expired, retrieval failure, grounding failure, network/CORS)
-- [] Loading/streaming status during assistant run
+- [x] Citation chips/links on assistant messages (company, filing type, date, page/section)
+- [x] Source passage panel — show underlying excerpt for selected citation
+- [x] Empty states (no threads, no corpus match)
+- [x] Error states (auth expired, retrieval failure, grounding failure, network/CORS)
+- [x] Loading/streaming status during assistant run
 - [] Verify: click a citation → see the exact passage from the filing
 
 ---
