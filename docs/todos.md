@@ -94,7 +94,7 @@ Goal: end-to-end chat UI streaming from FastAPI, no real retrieval yet.
 - [x] AI SDK chat primitives pointed at `POST /chat/stream` with Supabase bearer token
 - [x] Thread sidebar (past conversations)
 - [x] Basic message list + input + streaming indicator
-- [ ] Verify: create thread, send message, see streamed stub response, reload and see history
+- [x] Verify: create thread, send message, see streamed response, reload and see history
 
 ---
 
@@ -215,7 +215,7 @@ Goal: a user question returns ranked, relevant source passages.
 - [ ] Integration test (optional, `@pytest.mark.integration`): real query against ingested corpus
 - [x] Live smoke test: an Apple FY2025 net-sales query returned fused Item 7 and Item 8
   passages from the ingested filing
-- [] Verify: test queries from [client-brief](client-brief.md) return relevant chunks (manual or scripted)
+- [ ] Verify: test queries from [client-brief](client-brief.md) return relevant chunks (manual or scripted)
 
 ---
 
@@ -247,7 +247,7 @@ Goal: analysts can verify every claim in one click — this is what makes the pr
 - [x] Empty states (no threads, no corpus match)
 - [x] Error states (auth expired, retrieval failure, grounding failure, network/CORS)
 - [x] Loading/streaming status during assistant run
-- [] Verify: click a citation → see the exact passage from the filing
+- [x] Verify: click a citation → see the exact passage from the filing
 
 ---
 
@@ -255,24 +255,25 @@ Goal: analysts can verify every claim in one click — this is what makes the pr
 
 Goal: 5 senior analysts can use it for a week and report ≥3 hours saved per analyst per week.
 
-- [] README "Running locally" section — copy-paste commands for backend + frontend + env vars
-- [] Seed or document how to ingest/update the corpus
-- [] Smoke-test all 10 example questions from the client brief
-- [] Confirm chat history persists across sessions
-- [] Confirm ~40-user scale assumptions (no hardcoded single-user shortcuts)
-- [] Basic structured logging on backend (`structlog`) for debugging failed turns
-- [] Review latency: streaming starts within a few seconds for typical queries
+- [x] README "Running locally" section — copy-paste commands for backend + frontend + env vars
+- [x] Seed or document how to ingest/update the corpus
+- [ ] Smoke-test all 10 example questions from the client brief (blocked until the deferred
+  25-filing corpus ingestion; Apple FY2025 behavior is verified)
+- [x] Confirm chat history persists across sessions
+- [x] Confirm ~40-user scale assumptions (no hardcoded single-user shortcuts)
+- [x] Basic structured logging on backend (`structlog`) for debugging failed turns
+- [x] Review latency: streaming starts within a few seconds for typical queries
 
 ---
 
 ## Phase 9 — Deployment (Railway)
 
-- [] Railway: backend service (Uvicorn, env vars, `ALLOWED_ORIGINS`)
-- [] Railway: frontend service (Vite build, `VITE_*` env vars at build time)
-- [] Supabase: re-enable email confirmation for production if disabled during dev
-- [] Run `alembic upgrade head` against production Supabase (direct connection)
-- [] Run ingestion against production database
-- [] End-to-end test on deployed URLs with a real Driftwood-style email account
+- [ ] Railway: backend service (Uvicorn, env vars, `ALLOWED_ORIGINS`)
+- [ ] Railway: frontend service (Vite build, `VITE_*` env vars at build time)
+- [ ] Supabase: re-enable email confirmation for production if disabled during dev
+- [ ] Run `alembic upgrade head` against production Supabase (direct connection)
+- [ ] Run ingestion against production database
+- [ ] End-to-end test on deployed URLs with a real Driftwood-style email account
 
 ---
 

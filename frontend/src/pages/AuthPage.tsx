@@ -78,8 +78,8 @@ export function AuthPage({ mode }: AuthPageProps) {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/40 px-4 py-10">
-      <Card className="w-full max-w-md shadow-sm">
+    <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-10 before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_20%,oklch(0.88_0.08_275),transparent_35%),radial-gradient(circle_at_80%_80%,oklch(0.9_0.06_240),transparent_35%)]">
+      <Card className="relative w-full max-w-md border-white/70 bg-white/90 shadow-2xl shadow-slate-300/40 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="text-2xl">
             {isSignUp ? 'Create your account' : 'Welcome back'}

@@ -9,7 +9,7 @@ class TextPart(BaseModel):
 
 
 class DataPart(BaseModel):
-    type: Literal["data-citation", "data-answer-status"]
+    type: Literal["data-citation", "data-answer-status", "data-run-status"]
     data: dict[str, Any]
 
 

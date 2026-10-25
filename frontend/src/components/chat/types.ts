@@ -1,6 +1,7 @@
 import type { UIMessage } from 'ai'
 
 export type CitationMetadata = {
+  document_id?: string
   ticker?: string
   company_name?: string
   filing_type?: string
@@ -21,10 +22,15 @@ export type CitationData = {
 }
 
 export type AnswerStatusData = { kind: 'insufficient-evidence' }
+export type RunStatusData = { stage: 'searching' | 'answering' }
 
 export type DocumentUIMessage = UIMessage<
   unknown,
-  { citation: CitationData; 'answer-status': AnswerStatusData }
+  {
+    citation: CitationData
+    'answer-status': AnswerStatusData
+    'run-status': RunStatusData
+  }
 >
 
 export function isCitationData(value: unknown): value is CitationData {

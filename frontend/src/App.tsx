@@ -6,6 +6,7 @@ import { PublicOnlyRoute } from '@/auth/PublicOnlyRoute'
 import { AuthPage } from '@/pages/AuthPage'
 import { ChatListPage } from '@/pages/ChatListPage'
 import { ChatThreadPage } from '@/pages/ChatThreadPage'
+import { SourceDocumentPage } from '@/pages/SourceDocumentPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/workspace" element={<Navigate to="/chats" replace />} />
             <Route path="/chats" element={<ChatListPage />} />
             <Route path="/chats/:threadId" element={<ChatThreadPage />} />
+            <Route path="/sources/:documentId/:chunkId" element={<SourceDocumentPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/sign-in" replace />} />
         </Routes>

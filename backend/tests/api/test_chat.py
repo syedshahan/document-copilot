@@ -89,6 +89,7 @@ def test_stream_returns_ai_sdk_events_and_persists_turn(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.headers["x-vercel-ai-ui-message-stream"] == "v1"
+    assert '"type":"data-run-status"' in response.text
     assert '"type":"text-start"' in response.text
     assert '"type":"text-delta"' in response.text
     assert '"type":"data-citation"' in response.text
@@ -96,7 +97,7 @@ def test_stream_returns_ai_sdk_events_and_persists_turn(monkeypatch) -> None:
     append_turn.assert_awaited_once()
 
 
-def test_stream_accepts_prior_assistant_citation_parts(monkeypatch) -> None:
+def test_stream_accepts_prior_assistant_data_parts(monkeypatch) -> None:
     monkeypatch.setattr(chat, "get_owned_thread", AsyncMock(return_value={}))
     monkeypatch.setattr(chat, "append_turn", AsyncMock())
     monkeypatch.setattr(
@@ -124,8 +125,16 @@ def test_stream_accepts_prior_assistant_citation_parts(monkeypatch) -> None:
                             "parts": [
                                 {"type": "text", "text": "Earlier answer"},
                                 {
+                                    "type": "data-run-status",
+                                    "data": {"stage": "answering"},
+                                },
+                                {
                                     "type": "data-citation",
                                     "data": {"chunk_id": "chunk-1"},
+                                },
+                                {
+                                    "type": "data-answer-status",
+                                    "data": {"kind": "insufficient-evidence"},
                                 },
                             ],
                         },
@@ -141,10 +150,16 @@ def test_stream_accepts_prior_assistant_citation_parts(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert '"type":"data-answer-status"' in response.text
+    context = chat.run_turn.await_args.kwargs["conversation_context"]
+    assert "assistant: Earlier answer" in context
 
 
-def test_stream_returns_502_when_grounding_validation_fails(monkeypatch) -> None:
+def test_stream_returns_and_persists_safe_answer_when_grounding_validation_fails(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(chat, "get_owned_thread", AsyncMock(return_value={}))
+    append_turn = AsyncMock()
+    monkeypatch.setattr(chat, "append_turn", append_turn)
     monkeypatch.setattr(
         chat,
         "run_turn",
@@ -168,7 +183,11 @@ def test_stream_returns_502_when_grounding_validation_fails(monkeypatch) -> None
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 502
-    assert response.json()["detail"] == (
-        "The assistant response failed citation validation"
-    )
+    assert response.status_code == 200
+    assert '"type":"error"' not in response.text
+    assert '"type":"text-delta"' in response.text
+    assert '"type":"data-answer-status"' in response.text
+    assert response.text.endswith("data: [DONE]\n\n")
+    append_turn.assert_awaited_once()
+    assert "could not verify" in append_turn.await_args.args[4]
+    assert append_turn.await_args.args[-1] is True

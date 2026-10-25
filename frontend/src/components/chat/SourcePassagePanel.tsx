@@ -1,5 +1,6 @@
 import { BookOpen, CalendarDays, Check, Copy, ExternalLink, Hash, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { CitationData } from '@/components/chat/types'
 import { Button } from '@/components/ui/button'
@@ -13,14 +14,13 @@ export function SourcePassagePanel({ citation, onClose }: SourcePassagePanelProp
   const [copied, setCopied] = useState(false)
   const { metadata } = citation
   const location = metadata.page ? `Page ${metadata.page}` : metadata.section || 'Location unavailable'
-  const citationUrl = originalCitationUrl(citation)
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-l bg-muted/25" aria-label="Source passage">
-      <header className="flex items-start justify-between gap-4 border-b bg-background px-5 py-4">
+    <aside className="flex h-full min-h-0 w-full flex-col border-l bg-white shadow-[-16px_0_40px_rgba(30,41,59,0.08)]" aria-label="Source passage">
+      <header className="flex items-start justify-between gap-4 border-b bg-white/90 px-6 py-5 backdrop-blur-xl">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Source passage</p>
-          <h2 className="mt-1 truncate text-base font-semibold">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-primary">Verified source</p>
+          <h2 className="mt-1 truncate text-lg font-semibold tracking-tight">
             {metadata.company_name || metadata.ticker || 'SEC filing'}
           </h2>
         </div>
@@ -29,7 +29,7 @@ export function SourcePassagePanel({ citation, onClose }: SourcePassagePanelProp
         </Button>
       </header>
 
-      <div className="space-y-5 overflow-y-auto p-5">
+      <div className="space-y-6 overflow-y-auto p-6">
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <SourceFact icon={<BookOpen />} label="Filing" value={filingLabel(citation)} />
           <SourceFact icon={<CalendarDays />} label="Filed" value={formatDate(metadata.filing_date)} />
@@ -39,17 +39,25 @@ export function SourcePassagePanel({ citation, onClose }: SourcePassagePanelProp
 
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Exact stored text</p>
-          <blockquote className="whitespace-pre-wrap rounded-lg border bg-background p-4 text-sm leading-6 shadow-sm">
+          <blockquote className="whitespace-pre-wrap rounded-xl border-l-4 border-l-primary bg-muted/45 p-5 text-sm leading-7 shadow-sm">
             {citation.excerpt}
           </blockquote>
         </div>
 
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          {citationUrl ? (
+          {metadata.document_id ? (
             <Button asChild>
-              <a href={citationUrl} target="_blank" rel="noreferrer">
+              <Link to={`/sources/${metadata.document_id}/${citation.chunk_id}`}>
                 <ExternalLink className="size-4" />
-                Jump to cited text in SEC filing
+                Open exact cited location
+              </Link>
+            </Button>
+          ) : null}
+          {metadata.source_url ? (
+            <Button asChild variant="outline">
+              <a href={metadata.source_url} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-4" />
+                Official SEC filing
               </a>
             </Button>
           ) : null}
@@ -74,7 +82,7 @@ export function SourcePassagePanel({ citation, onClose }: SourcePassagePanelProp
 
 function SourceFact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-lg border bg-background p-3">
+    <div className="min-w-0 rounded-xl border bg-muted/30 p-3.5">
       <dt className="flex items-center gap-1.5 text-xs text-muted-foreground [&_svg]:size-3.5">{icon}{label}</dt>
       <dd className="mt-1 truncate font-medium" title={value}>{value}</dd>
     </div>
@@ -89,33 +97,4 @@ function filingLabel(citation: CitationData): string {
 function formatDate(value?: string): string {
   if (!value) return 'Unavailable'
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value))
-}
-
-function originalCitationUrl(citation: CitationData): string | null {
-  if (!citation.metadata.source_url) return null
-  const phrase = citationPhrase(citation.excerpt) || citation.metadata.section
-  if (!phrase) return citation.metadata.source_url
-  const baseUrl = citation.metadata.source_url.split('#', 1)[0]
-  return `${baseUrl}#:~:text=${encodeURIComponent(phrase)}`
-}
-
-function citationPhrase(excerpt: string): string | null {
-  const lines = excerpt
-    .split(/\r?\n/)
-    .map((line) => cleanMarkdown(line))
-    .filter((line) => line.length >= 40 && !/form 10-k\s+\d+$/i.test(line))
-
-  const prose = lines.find((line) => /[.!?]/.test(line)) || lines[0]
-  if (!prose) return null
-  const firstSentence = prose.match(/^.{40,180}?[.!?](?:\s|$)/)?.[0] || prose
-  return firstSentence.slice(0, 180).trim()
-}
-
-function cleanMarkdown(value: string): string {
-  return value
-    .replace(/^#+\s*/, '')
-    .replace(/[*_`]/g, '')
-    .replace(/\s*\|\s*/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
 }

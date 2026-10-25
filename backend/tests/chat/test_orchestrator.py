@@ -71,6 +71,25 @@ def test_run_turn_fails_closed_on_bad_citation() -> None:
         )
 
 
+def test_run_turn_deduplicates_valid_citations() -> None:
+    answer = GroundedAnswer(
+        answer="Net sales increased 6% [chunk-1].",
+        citations=[Citation(chunk_id="chunk-1"), Citation(chunk_id="chunk-1")],
+    )
+
+    turn = asyncio.run(
+        run_turn(
+            object(),  # type: ignore[arg-type]
+            uuid4(),
+            uuid4(),
+            "What were sales?",
+            agent=FakeAgent(answer),  # type: ignore[arg-type]
+        )
+    )
+
+    assert turn.answer.citations == [Citation(chunk_id="chunk-1")]
+
+
 def test_run_turn_rejects_under_specified_question_without_calling_agent() -> None:
     class UnexpectedAgent:
         async def answer(self, question, deps):
@@ -89,3 +108,41 @@ def test_run_turn_rejects_under_specified_question_without_calling_agent() -> No
     assert turn.answer.insufficient_evidence is True
     assert turn.answer.citations == []
     assert "does not identify" in turn.answer.answer
+
+
+def test_run_turn_uses_context_to_resolve_follow_up() -> None:
+    class ContextAgent:
+        async def answer(self, question, deps) -> GroundedAnswer:
+            assert "Apple total net sales" in question
+            assert "What percentage increase does that represent?" in question
+            deps.remember(
+                [
+                    SourcePassage(
+                        chunk_id="chunk-1",
+                        document_id="document-1",
+                        chunk_index=1,
+                        content="Total net sales increased 6%.",
+                        page=None,
+                        section="Item 7",
+                        metadata={"ticker": "AAPL"},
+                        score=1,
+                    )
+                ]
+            )
+            return GroundedAnswer(
+                answer="The increase was 6% [chunk-1].",
+                citations=[Citation(chunk_id="chunk-1")],
+            )
+
+    turn = asyncio.run(
+        run_turn(
+            object(),  # type: ignore[arg-type]
+            uuid4(),
+            uuid4(),
+            "What percentage increase does that represent?",
+            conversation_context="user: What were Apple total net sales?",
+            agent=ContextAgent(),  # type: ignore[arg-type]
+        )
+    )
+
+    assert turn.answer.answer == "The increase was 6% [1]."

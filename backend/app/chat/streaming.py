@@ -7,6 +7,13 @@ def stream_event(payload: dict[str, object]) -> bytes:
     return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n".encode()
 
 
+def stream_error(message: str) -> tuple[bytes, bytes]:
+    return (
+        stream_event({"type": "error", "errorText": message}),
+        b"data: [DONE]\n\n",
+    )
+
+
 async def answer_events(
     text_id: str,
     text: str,

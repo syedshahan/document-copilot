@@ -1,13 +1,20 @@
 import asyncio
 import json
 
-from app.chat.streaming import answer_events, stream_event
+from app.chat.streaming import answer_events, stream_error, stream_event
 
 
 def test_stream_event_uses_sse_data_format() -> None:
     event = stream_event({"type": "text-delta", "id": "text-1", "delta": "Hello"})
 
     assert event == (b'data: {"type":"text-delta","id":"text-1","delta":"Hello"}\n\n')
+
+
+def test_stream_error_finishes_ai_sdk_stream() -> None:
+    events = stream_error("Please retry")
+
+    assert events[0] == b'data: {"type":"error","errorText":"Please retry"}\n\n'
+    assert events[1] == b"data: [DONE]\n\n"
 
 
 def test_answer_stream_has_ordered_ai_sdk_events_and_citations() -> None:

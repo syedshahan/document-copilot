@@ -22,13 +22,14 @@ export function CitationChip({ citation, number, isSelected, onSelect }: Citatio
       type="button"
       variant={isSelected ? 'secondary' : 'outline'}
       size="sm"
-      className="h-auto max-w-full justify-start rounded-full px-3 py-1.5 text-left"
+      className="h-auto max-w-full justify-start rounded-lg border-primary/15 bg-primary/5 px-2.5 py-1.5 text-left text-primary shadow-none hover:border-primary/30 hover:bg-primary/10"
       onClick={onSelect}
       aria-label={`Open citation ${number}: ${filing}, ${location}`}
       aria-pressed={isSelected}
     >
+      <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[0.65rem] font-bold text-primary-foreground">{number}</span>
       <FileText className="size-3.5" />
-      <span className="truncate">[{number}] {filing || 'Filing'} · {location}</span>
+      <span className="truncate">{filing || 'Filing'} · {location}</span>
     </Button>
   )
 }
